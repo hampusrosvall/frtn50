@@ -1,3 +1,5 @@
+using LinearAlgebra
+
 """
     quad(x,Q,q)
 
@@ -21,7 +23,7 @@ Compute the convex conjugate of the quadratic
 
 """
 function quadconj(y,Q,q)
-
+	return inv(Q) * (y - q)
 end
 
 
@@ -39,8 +41,6 @@ function box(x,a,b)
 	return all(a .<= x .<= b) ? 0.0 : Inf
 end
 
-
-
 """
     boxconj(y,a,b)
 
@@ -51,10 +51,14 @@ Compute the convex conjugate of the indicator function of for the box contraint
 where the inequalites are applied element-wise.
 """
 function boxconj(y,a,b)
-
+	S = 0
+	for i in eachindex(a)
+		if y[i] !=  0
+			S += y[i] > 0 ? y[i]*b[i] ? y[i] * a[i]
+		end
+	end
+	return S
 end
-
-
 
 """
     grad_quad(x,Q,q)
@@ -65,7 +69,7 @@ Compute the gradient of the quadratic
 
 """
 function grad_quad(x,Q,q)
-
+	return Q*x + q
 end
 
 
@@ -79,7 +83,7 @@ Compute the gradient of the convex conjugate of the quadratic
 
 """
 function grad_quadconj(y,Q,q)
-
+	return inv(Q) * (y - q)
 end
 
 
@@ -94,7 +98,11 @@ Compute the proximal operator of the indicator function for the box contraint
 where the inequalites are applied element-wise.
 """
 function prox_box(x,a,b,gamma)
-
+	x_star = zeros(length(x))
+	for i in eachindex(x)
+		x_star[i] = x[i] <= a[i] ? a[i] ? x[i] >= b[i] ? b[i] ? x[i]
+	end
+	return x_star
 end
 
 
@@ -110,7 +118,7 @@ for the box contraint
 where the inequalites are applied element-wise.
 """
 function prox_boxconj(y,a,b,gamma)
-
+	return transpose(y) .- prox_box(y, a, b, gamma)
 end
 
 
