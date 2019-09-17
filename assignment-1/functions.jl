@@ -97,7 +97,7 @@ Compute the proximal operator of the indicator function for the box contraint
 
 where the inequalites are applied element-wise.
 """
-function prox_box(x,a,b,gamma)
+function prox_box(x,a,b,gamma = 1)
 	x_star = zeros(length(x))
 	for i in eachindex(x)
 		x_star[i] = x[i] <= a[i] ? a[i] ? x[i] >= b[i] ? b[i] ? x[i]
@@ -117,8 +117,8 @@ for the box contraint
 
 where the inequalites are applied element-wise.
 """
-function prox_boxconj(y,a,b,gamma)
-	return transpose(y) .- prox_box(y, a, b, gamma)
+function prox_boxconj(y,a,b; gamma = 1)
+	return transpose(y) .- prox_box(y, a, b)
 end
 
 
@@ -128,6 +128,6 @@ end
 Computes the solution to the primal problem for Hand-In 1 given a solution y to
 the dual problem.
 """
-function dual2primal(y,Q,q,a,b)
-
+function dual2primal(y,Q,q; a = 1, b = 1)
+	return grad_quadconj(y, Q, q)
 end
