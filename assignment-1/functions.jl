@@ -54,7 +54,7 @@ function boxconj(y,a,b)
 	S = 0
 	for i in eachindex(a)
 		if y[i] !=  0
-			S += y[i] > 0 ? y[i]*b[i] ? y[i] * a[i]
+			S += y[i] > 0 ? y[i]*b[i] : y[i] * a[i]
 		end
 	end
 	return S
@@ -100,7 +100,7 @@ where the inequalites are applied element-wise.
 function prox_box(x,a,b,gamma = 1)
 	x_star = zeros(length(x))
 	for i in eachindex(x)
-		x_star[i] = x[i] <= a[i] ? a[i] ? x[i] >= b[i] ? b[i] ? x[i]
+		x_star[i] = x[i] <= a[i] ? a[i] : x[i] >= b[i] ? b[i] : x[i]
 	end
 	return x_star
 end
