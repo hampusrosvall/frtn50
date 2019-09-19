@@ -41,8 +41,7 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 	x_k = randn(dim)
 
 	# extract L
-	L = eigmax(transpose(Q) * Q)
-
+	L = eigmax(Q)
 	gamma = 2/L * h
 
 	if grid
@@ -61,7 +60,6 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 		end
 	else
 		residuals = -1 * ones(nbr_of_iterations)
-
 		for i = 1:nbr_of_iterations
 			z = x_k - gamma * grad_quad(x_k,Q,q)
 			x_kplus1 = prox_box(z, a, b)
@@ -71,4 +69,32 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 
 		plot(residuals, yaxis=:log)
 	end
+end
+
+
+function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500)
+	# import problem data
+	Q, q, a, b = problem_data()
+
+	# extract dimensions of x
+	dim = length(a)
+	# initialize starting points
+	y_k = randn(dim)
+
+	# extract L
+	L = 1/eigmin(Q)
+
+	gamma = 2/L * h
+
+	residuals = -1 * ones(nbr_of_iterations)
+
+	for i = 1:nbr_of_iterations
+		z = y_k - gamma * grad_quadconj(y_k,Q,q)
+		y_kplus1 = prox_boxconj(z, a, b)
+		residuals[i] = norm(y_kplus1 - y_k)
+		y_k = y_kplus1
+	end
+
+	plot(residuals, yaxis=:log)
+
 end
