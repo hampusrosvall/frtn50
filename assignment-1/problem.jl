@@ -38,26 +38,29 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 	dim = length(a)
 
 	# initialize starting points
-	x_k = randn(dim)
+	x_k = randn(dim)*100
 
 	# extract L
 	L = eigmax(Q)
 	gamma = 2/L * h
 
 	if grid
-		gamma_grid = range(0.001, stop = gamma, length = 10)
+		gamma_grid = (10*ones(10)).^(range(log10(10e-4), stop = log10(2/L), length = 10))
 		residuals = -1 * ones(nbr_of_iterations)
 		p = plot()
 
-		for gamma in eachindex(gamma_grid)
+		for gamma in gamma_grid
+			mt = MersenneTwister(123)
+			x_k = randn(dim)*100
 			for i = 1:nbr_of_iterations
 				z = x_k - gamma * grad_quad(x_k,Q,q)
 				x_kplus1 = prox_box(z, a, b)
 				residuals[i] = norm(x_kplus1 - x_k)
 				x_k = x_kplus1
 			end
-			plot!(p, residuals, yaxis=:log)
+			plot!(p, residuals, yaxis=:log10)
 		end
+		display(p)
 	else
 		residuals = -1 * ones(nbr_of_iterations)
 		for i = 1:nbr_of_iterations
@@ -67,8 +70,11 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 			x_k = x_kplus1
 		end
 
-		plot(residuals, yaxis=:log)
+		plot(residuals, yaxis=:log10)
+
+		return x_k
 	end
+
 end
 
 
@@ -82,19 +88,27 @@ function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500)
 	y_k = randn(dim)
 
 	# extract L
-	L = 1/eigmin(Q)
+	L_star = 1/eigmin(Q)
 
-	gamma = 2/L * h
+	gamma = 2/L_star * h
 
 	residuals = -1 * ones(nbr_of_iterations)
 
 	for i = 1:nbr_of_iterations
 		z = y_k - gamma * grad_quadconj(y_k,Q,q)
-		y_kplus1 = prox_boxconj(z, a, b)
+		#y_kplus1 = #Här är det fel prox_boxconj(z, a, b)
 		residuals[i] = norm(y_kplus1 - y_k)
 		y_k = y_kplus1
 	end
 
 	plot(residuals, yaxis=:log)
-
+	return y_k
 end
+
+x_star = proximal_gradient_method(nbr_of_iterations = 5000)
+y_star = proximal_dual_gradient_method(nbr_of_iterations = 5000)
+x_star_from_dual = dual2primal(y_star,Q,q)
+
+print("x* = ", norm(x_star))
+print("\n")
+print("x*_from_dual = ", norm(x_star_from_dual))
