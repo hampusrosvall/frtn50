@@ -30,7 +30,7 @@ end
 Returns the minimizer x_kplus1 given the
 """
 
-function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500; grid = false)
+function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = false)
 	# import problem data
 	Q, q, a, b = problem_data()
 
@@ -45,7 +45,21 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500; grid = fal
 
 	gamma = 2/L * h
 
-	if !grid
+	if grid
+		gamma_grid = range(0.001, stop = gamma, length = 10)
+		residuals = -1 * ones(nbr_of_iterations)
+		p = plot()
+
+		for gamma in eachindex(gamma_grid)
+			for i = 1:nbr_of_iterations
+				z = x_k - gamma * grad_quad(x_k,Q,q)
+				x_kplus1 = prox_box(z, a, b)
+				residuals[i] = norm(x_kplus1 - x_k)
+				x_k = x_kplus1
+			end
+			plot!(p, residuals, yaxis=:log)
+		end
+	else
 		residuals = -1 * ones(nbr_of_iterations)
 
 		for i = 1:nbr_of_iterations
@@ -56,17 +70,5 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500; grid = fal
 		end
 
 		plot(residuals, yaxis=:log)
-	else:
-		gamma_grid = range(0.001, gamma, 10)
-		residuals = -1 * ones(nbr_of_iterations)
-
-		for gamma in eachindex(gamma_grid)
-			for i = 1:nbr_of_iterations
-				z = x_k - gamma * grad_quad(x_k,Q,q)
-				x_kplus1 = prox_box(z, a, b)
-				residuals[i] = norm(x_kplus1 - x_k)
-				x_k = x_kplus1
-			end
-
-			plot!(residuals, yaxis=:log)
+	end
 end
