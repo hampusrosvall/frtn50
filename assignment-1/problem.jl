@@ -60,7 +60,7 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 			end
 			plot!(p,
 				  residuals,
-				  yaxis=:log10, 
+				  yaxis=:log10,
 				  label = round(gamma, digits = 3),
 				  legendtitle = "Step Size")
 		end
@@ -89,7 +89,7 @@ function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500)
 	# extract dimensions of x
 	dim = length(a)
 	# initialize starting points
-	y_k = randn(dim)
+	y_k = randn(dim) * 100
 
 	# extract L
 	L_star = 1/eigmin(Q)
@@ -100,7 +100,7 @@ function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500)
 
 	for i = 1:nbr_of_iterations
 		z = y_k - gamma * grad_quadconj(y_k,Q,q)
-		#y_kplus1 = #Här är det fel prox_boxconj(z, a, b)
+		y_kplus1 = -prox_boxconj(-z, a, b, gamma = gamma)
 		residuals[i] = norm(y_kplus1 - y_k)
 		y_k = y_kplus1
 	end
@@ -109,10 +109,13 @@ function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500)
 	return y_k
 end
 
+Q, q, a, b = problem_data()
 x_star = proximal_gradient_method(nbr_of_iterations = 5000)
-y_star = proximal_dual_gradient_method(nbr_of_iterations = 5000)
+y_star = proximal_dual_gradient_method(nbr_of_iterations = 100000)
 x_star_from_dual = dual2primal(y_star,Q,q)
 
 print("x* = ", norm(x_star))
 print("\n")
 print("x*_from_dual = ", norm(x_star_from_dual))
+print("\n")
+print(norm(x_star - x_star_from_dual))
