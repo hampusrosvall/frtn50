@@ -45,7 +45,7 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 	gamma = 2/L * h
 
 	if grid
-		gamma_grid = (10*ones(10)).^(range(log10(10e-4), stop = log10(2/L), length = 10))
+		gamma_grid = range(10e-4, stop = 2/L, length = 10)
 		residuals = -1 * ones(nbr_of_iterations)
 		p = plot()
 
@@ -58,7 +58,11 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 				residuals[i] = norm(x_kplus1 - x_k)
 				x_k = x_kplus1
 			end
-			plot!(p, residuals, yaxis=:log10)
+			plot!(p,
+				  residuals,
+				  yaxis=:log10, 
+				  label = round(gamma, digits = 3),
+				  legendtitle = "Step Size")
 		end
 		display(p)
 	else
