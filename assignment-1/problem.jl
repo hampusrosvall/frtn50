@@ -130,6 +130,21 @@ function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500, do_pl
 	end
 end
 
+function check_if_dual_in_S()
+	Q, q, a, b = problem_data()
+	for i in [10,50,100,500,1000,5000,10000,50000,100000, 500000]
+		y_star = proximal_dual_gradient_method(nbr_of_iterations = i)
+		x_star_from_dual = dual2primal(y_star,Q,q)
+		in_S = box(x_star_from_dual, a, b)
+		if in_S == 0
+			print("Inside for ", i, " iterations\n")
+		else
+			print("Outside for ", i, " iterations\n")
+		end
+	end
+end
+
+
 function main()
 
 	Q, q, a, b = problem_data()
@@ -138,11 +153,12 @@ function main()
 	y_star = proximal_dual_gradient_method(nbr_of_iterations = n_itrs)
 	x_star_from_dual = dual2primal(y_star,Q,q)
 
-	print("Primal x* = ", norm(x_star))
-	print("\n")
-	print("Dual x* = ", norm(x_star_from_dual))
-	print("\n \n")
+	#print("Primal x* = ", norm(x_star))
+	#print("\n")
+	#print("Dual x* = ", norm(x_star_from_dual))
+	#print("\n \n")
 	print("The norm difference in x* is: \n", norm(x_star - x_star_from_dual))
+
 end
 
 main()
