@@ -100,7 +100,7 @@ Args:
 	nbr_of_iterations : numer of steps we take
 	do_plot 		  : if true plots the convergence
 """
-function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500, do_plot = false)
+function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500, do_plot = false, plot_f_x = false, plot_f_i_x = false)
 	# import problem data
 	Q, q, a, b = problem_data()
 	# extract dimensions of x
@@ -118,13 +118,26 @@ function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500, do_pl
 	for i = 1:nbr_of_iterations
 		z = y_k - gamma * grad_quadconj(y_k,Q,q)
 		y_kplus1 = -prox_boxconj(-z, a, b, gamma = gamma)
-		#for plotting
-		residuals[i] = norm(y_kplus1 - y_k)
+		#Plotting either:
+		# f(x^k) recovered from the dual
+		# f(x^k) + g(x^k) recovered from the dual
+		# Norm of the residuals
+		if plot_f_x
+			x = dual2primal(y_kplus1,Q,q)
+			residuals[i] = quad(x,Q,q)
+		elseif plot_f_i_x
+			x = dual2primal(y_kplus1,Q,q)
+			residuals[i] = quad(x,Q,q) + box(x,a,b)
+		else
+			residuals[i] = norm(y_kplus1 - y_k)
+		end
+
 		y_k = y_kplus1
 	end
 
 	if do_plot
 		plot(residuals, yaxis=:log)
+		#plot(residuals, yaxis=:log, legend = false, title="Evolution of f(x) over iterations", xlabel = "# iterations k", ylabel = "f(x)")
 	else
 		return y_k
 	end
@@ -153,10 +166,10 @@ function main()
 	y_star = proximal_dual_gradient_method(nbr_of_iterations = n_itrs)
 	x_star_from_dual = dual2primal(y_star,Q,q)
 
-	#print("Primal x* = ", norm(x_star))
-	#print("\n")
-	#print("Dual x* = ", norm(x_star_from_dual))
-	#print("\n \n")
+	print("Primal x* = ", norm(x_star))
+	print("\n")
+	print("Dual x* = ", norm(x_star_from_dual))
+	print("\n \n")
 	print("The norm difference in x* is: \n", norm(x_star - x_star_from_dual))
 
 end
