@@ -7,7 +7,6 @@ include("./functions.jl")
     problem_data()
 
 Returns the Q, q, a, and b matrix/vectors that defines the problem in Hand-In 1.
-
 """
 function problem_data()
 	mt = MersenneTwister(123)
@@ -24,40 +23,48 @@ function problem_data()
 	return Q,q,a,b
 end
 
-"""
+""" Task 6
 	proximal_gradient_method()
 
-Returns the minimizer x_kplus1 given the
+Returns the solution for the primal problem.
+Args:
+	h 				  : proportion of the upperbound stepsize
+	nbr_of_iterations : numer of steps we take
+	grid 			  : if true plot convergece for different step sizes
+	do_plot 		  : if true plots the convergence
 """
 
-function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = false)
+function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = false, do_plot = false)
 	# import problem data
 	Q, q, a, b = problem_data()
-
 	# extract dimensions of x
 	dim = length(a)
-
 	# initialize starting points
 	x_k = randn(dim)*100
-
 	# extract L
 	L = eigmax(Q)
 	gamma = 2/L * h
 
+	#Check convergence for different step sizes
 	if grid
+		#Create different step sizes
 		gamma_grid = range(10e-4, stop = 2/L, length = 10)
 		residuals = -1 * ones(nbr_of_iterations)
 		p = plot()
 
 		for gamma in gamma_grid
+			#Set the starting point to the same value
 			mt = MersenneTwister(123)
 			x_k = randn(dim)*100
+			#Optimization loop
 			for i = 1:nbr_of_iterations
 				z = x_k - gamma * grad_quad(x_k,Q,q)
 				x_kplus1 = prox_box(z, a, b)
+				#for plotting
 				residuals[i] = norm(x_kplus1 - x_k)
 				x_k = x_kplus1
 			end
+			#Plot in same plot
 			plot!(p,
 				  residuals,
 				  yaxis=:log10,
@@ -67,55 +74,75 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 		display(p)
 	else
 		residuals = -1 * ones(nbr_of_iterations)
+		#Optimization loop
 		for i = 1:nbr_of_iterations
 			z = x_k - gamma * grad_quad(x_k,Q,q)
 			x_kplus1 = prox_box(z, a, b)
+			#for plotting
 			residuals[i] = norm(x_kplus1 - x_k)
 			x_k = x_kplus1
 		end
-
-		plot(residuals, yaxis=:log10)
-
-		return x_k
+		if do_plot
+			plot(residuals, yaxis=:log10)
+		else
+			return x_k
+		end
 	end
 
 end
 
+""" Task 7
+	proximal_dual_gradient_method()
 
-function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500)
+Returns the solution for the dual problem.
+Args:
+	h 				  : proportion of the upperbound stepsize
+	nbr_of_iterations : numer of steps we take
+	do_plot 		  : if true plots the convergence
+"""
+function proximal_dual_gradient_method(;h = 0.99, nbr_of_iterations = 500, do_plot = false)
 	# import problem data
 	Q, q, a, b = problem_data()
-
 	# extract dimensions of x
 	dim = length(a)
 	# initialize starting points
 	y_k = randn(dim) * 100
-
 	# extract L
 	L_star = 1/eigmin(Q)
-
+	#Step Size
 	gamma = 2/L_star * h
-
+	#List to store the norm for plotting
 	residuals = -1 * ones(nbr_of_iterations)
 
+	#Optimization loop
 	for i = 1:nbr_of_iterations
 		z = y_k - gamma * grad_quadconj(y_k,Q,q)
 		y_kplus1 = -prox_boxconj(-z, a, b, gamma = gamma)
+		#for plotting
 		residuals[i] = norm(y_kplus1 - y_k)
 		y_k = y_kplus1
 	end
 
-	plot(residuals, yaxis=:log)
-	return y_k
+	if do_plot
+		plot(residuals, yaxis=:log)
+	else
+		return y_k
+	end
 end
 
-Q, q, a, b = problem_data()
-x_star = proximal_gradient_method(nbr_of_iterations = 5000)
-y_star = proximal_dual_gradient_method(nbr_of_iterations = 100000)
-x_star_from_dual = dual2primal(y_star,Q,q)
+function main()
 
-print("x* = ", norm(x_star))
-print("\n")
-print("x*_from_dual = ", norm(x_star_from_dual))
-print("\n")
-print(norm(x_star - x_star_from_dual))
+	Q, q, a, b = problem_data()
+	n_itrs = 500000
+	x_star = proximal_gradient_method(nbr_of_iterations = n_itrs)
+	y_star = proximal_dual_gradient_method(nbr_of_iterations = n_itrs)
+	x_star_from_dual = dual2primal(y_star,Q,q)
+
+	print("Primal x* = ", norm(x_star))
+	print("\n")
+	print("Dual x* = ", norm(x_star_from_dual))
+	print("\n \n")
+	print("The norm difference in x* is: \n", norm(x_star - x_star_from_dual))
+end
+
+main()
