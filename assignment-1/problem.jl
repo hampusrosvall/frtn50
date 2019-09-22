@@ -91,6 +91,45 @@ function proximal_gradient_method(;h = 0.99, nbr_of_iterations = 500, grid = fal
 
 end
 
+function prox_start_point(;h = 0.99, nbr_of_iterations = 2000)
+	# import problem data
+	Q, q, a, b = problem_data()
+
+	# extract dimensions of x
+	dim = length(a)
+
+	# initialize grid of starting points
+	scalars = range(1, stop = 1000, length = 5)
+
+	# extract L
+	L = eigmax(Q)
+	gamma = 2/L * h
+	p = plot()
+
+	residuals = -1 * ones(nbr_of_iterations)
+	p = plot()
+
+	for scalar in scalars
+		x_k = randn(dim)*scalar
+		for i = 1:nbr_of_iterations
+			z = x_k - gamma * grad_quad(x_k,Q,q)
+			x_kplus1 = prox_box(z, a, b)
+			residuals[i] = norm(x_kplus1 - x_k)
+			x_k = x_kplus1
+		end
+		plot!(p,
+			  residuals,
+			  yaxis=:log10,
+			  label = floor(scalar, digits = 0),
+			  legendtitle = "Starting point scale",
+			  xlabel = "# iterations",
+			  ylabel = "Norm of residual",
+			  title = "Convergence rates for different starting points")
+	end
+	display(p)
+	savefig("starting.png")
+end
+
 """ Task 7
 	proximal_dual_gradient_method()
 
@@ -156,6 +195,7 @@ function check_if_dual_in_S()
 		end
 	end
 end
+
 
 
 function main()
