@@ -26,7 +26,7 @@ function least_squares_prox(x, y_unscaled; it = 1000, tol = 10e-6)
     gam = 1/eigmax(x * x')
 
     for i = 1:1000
-        z = w .- gam.*(x'*(x.*w - y))
+        z = w .- gam.*(x'*(x*w - y))
         w_prev = w
         prox!(w, f, z, gam)
 
@@ -56,12 +56,16 @@ end
 function plot_ploynomials(x,y,p)
     x_expand = expand_x(x, p)
     y_scaled = min_max_scale(y)
-    
-    p = Plot()
-    plot!(p, x, y_scaled, seriestype =:scatter)
+
+    pl = plot()
+    x_grid = range(minimum(x), stop = maximum(x), length = 1000)
+    x_grid_expand = expand_x(x_grid, p)
+    plot!(pl, x, y_scaled, seriestype =:scatter, ylims = (-1.2,1.2))
     for i = 1:(p + 1)
         x_slize = x_expand[:,1:i]
         w = least_squares_prox(x_slize, y)
-        plot!(p, x, x*w')
+        print(w)
+        plot!(pl, x_grid, x_grid_expand[:,1:i]*w)
+        display(pl)
     end
 end
