@@ -8,9 +8,7 @@ x, y = leastsquares_data()
 p = plot()
 plot!(p,x,y, seriestype =:scatter)
 
-function min_max_scale(x)
-    x_max = maximum(x)
-    x_min = minimum(x)
+function min_max_scale(x, x_max, x_min)
 
     return 2 * (x .- x_min)./(x_max - x_min) .- 1
 end
@@ -25,14 +23,13 @@ function expand_x(x, p)
     return x_expand
 end
 
-function least_squares_gd(x_unexpanded_unscaled, Y; p = 1, it = 1000, tol = 10e-10, do_plot = false)
-    x_unexpanded = min_max_scale(x_unexpanded_unscaled)
-    X = expand_x(x_unexpanded, p)
-    w = randn(p+1)
+function least_squares_gd(X, Y; p = 1, it = 1000, tol = 10e-10, do_plot = false)
+    X_scaled = min_max_scale(X, maximum(X), minimum(X))
+    X_phi = expand_x(X_scaled, p)
+    w = randn(p + 1)
+    f = LeastSquares(X_phi, Y)
 
-    f = LeastSquares(X, Y)
-
-    gam = 1/eigmax(X * X')
+    gam = 1/eigmax(X_phi * X_phi')
     conv_iter = 0
 
     for i = 1:it
@@ -48,8 +45,8 @@ function least_squares_gd(x_unexpanded_unscaled, Y; p = 1, it = 1000, tol = 10e-
 
     if do_plot
         pl = plot()
-        plot!(pl, x_unexpanded, Y, seriestype =:scatter)
-        plot!(pl, x_unexpanded, X * w)
+        plot!(pl, X, Y, seriestype =:scatter)
+        plot!(pl, X, X_phi * w)
         display(pl)
         return
     end
@@ -58,21 +55,19 @@ end
 
 least_squares_gd(x, y, p = 10, do_plot = true)
 
-function plot_polynomials(x_unscaled, y, p)
-    x_grid = range(-1, stop = 1, length = 100)
-    x_grid_expand = expand_x(x_grid, p)
-    x = min_max_scale(x_unscaled)
-    #pl = plot()
-    #plot!(pl, x, y_scaled, seriestype =:scatter, ylims = (-1.2,1.2))
+function plot_polynomials(X, Y, p)
+    X_grid = range(minimum(X), stop = maximum(X), length = 100)
+    X_grid_scaled = min_max_scale(X_grid, maximum(X), minimum(X))
+    X_grid_phi = expand_x(X_grid_scaled, p)
 
     for i = 2:(p + 1)
-        w, conv_iter = least_squares_gd(x_unscaled, y, p = i-1, it = 1000000, tol = 10e-5)
-        print(conv_iter)
-        print("\n")
-        #plot!(pl, x_grid, x_grid_expand[:,1:i]*w)
+        w, conv_iter = least_squares_gd(X, Y, p = i-1, it = 1000000, tol = 10e-5)
+        print(w, conv_iter)
+        print(size(X))
         pl = plot()
-        plot!(pl, x, y, seriestype =:scatter)
-        plot!(pl, x_grid, x_grid_expand[:,1:i] * w)
+        print(X_grid_phi[:,1:i] * w)
+        plot!(pl, X, Y, seriestype =:scatter)
+        plot!(pl, X, X_grid_phi[:,1:i] * w)
         display(pl)
     end
 end
