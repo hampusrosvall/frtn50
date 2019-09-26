@@ -71,38 +71,39 @@ end
 
 plot_polynomials(x,y,15)
 
-function least_squares_reg(X, Y; q = 2, p = 10, lam = 0.1, it = 10000)
+function least_squares_reg(X, Y; q = 2, p = 10, lam = 0.1, it = 10000, do_plot = false)
     # Initializing plot data
     X_grid = range(minimum(X), stop = maximum(X), length = 100)
     X_grid_scaled = min_max_scale(X_grid, maximum(X), minimum(X))
+    X_grid_phi = expand_x(X_grid_scaled, p)
 
     # Initializing data
     X_scaled = min_max_scale(X, maximum(X), minimum(X))
     X_phi = expand_x(X_scaled, p)
 
     # Initializing functions
-    g = q == 2 ? NormL2(lam) : NormL1(lam)
     f = LeastSquares(X_phi, Y)
 
-    # Initialize weights w
-    w = randn(p + 1)
     gam = 1/eigmax(X_phi' * X_phi)
 
     # Proximal gradient descent
-    for i = 1:it
-        # gradient of least squares
-        gradfw,_ = gradient(f, w)
-        w_step = w - gam * gradfw
-        w, _ = prox(g, w_step, gam)
+    for l in lam
+        g = q == 2 ? NormL2(l) : NormL1(l)
+        # Initialize weights w
+        w = randn(p + 1)
+        for i = 1:it
+            # gradient of least squares
+            gradfw,_ = gradient(f, w)
+            w_step = w - gam * gradfw
+            w, _ = prox(g, w_step, gam)
+        end
+        if do_plot
+            pl = plot()
+            plot!(pl, X, Y, seriestype =:scatter)
+            plot!(pl, X_grid, X_grid_phi * w)
+            display(pl)
+        end
     end
-
-    pl = plot()
-    plot!(pl, X, Y, seriestype =:scatter)
-    plot!(pl, X_grid, X_grid_phi * w)
-    display(pl)
-
-    return w
-
 end
 
-least_squares_reg(x, y)
+least_squares_reg(x, y, lam = 0.1, do_plot = true)
