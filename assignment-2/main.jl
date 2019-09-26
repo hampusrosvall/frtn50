@@ -61,13 +61,10 @@ function plot_polynomials(X, Y, p)
     X_grid_phi = expand_x(X_grid_scaled, p)
 
     for i = 2:(p + 1)
-        w, conv_iter = least_squares_gd(X, Y, p = i-1, it = 1000000, tol = 10e-5)
-        print(w, conv_iter)
-        print(size(X))
+        w, conv_iter = least_squares_gd(X, Y, p = i-1, it = 1000000, tol = 10e-15)
         pl = plot()
-        print(X_grid_phi[:,1:i] * w)
         plot!(pl, X, Y, seriestype =:scatter)
-        plot!(pl, X, X_grid_phi[:,1:i] * w)
+        plot!(pl, X_grid, X_grid_phi[:,1:i] * w)
         display(pl)
     end
 end
