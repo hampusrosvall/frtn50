@@ -29,7 +29,7 @@ function least_squares_gd(X, Y; p = 1, it = 1000, tol = 10e-10, do_plot = false)
     w = randn(p + 1)
     f = LeastSquares(X_phi, Y)
 
-    gam = 1/eigmax(X_phi * X_phi')
+    gam = 1/eigmax(X_phi' * X_phi)
     conv_iter = 0
 
     for i = 1:it
@@ -69,4 +69,31 @@ function plot_polynomials(X, Y, p)
     end
 end
 
-plot_polynomials(x,y,10)
+plot_polynomials(x,y,15)
+
+function least_squares_reg(X, Y; q = 2, p = 10, lam = 0.1, it = 10000)
+    # Initializing data
+    X_scaled = min_max_scale(X, maximum(X), minimum(X))
+    X_phi = expand_x(X_scaled, p)
+
+    # Initializing functions
+    g = q == 2 ? NormL2(lam) : NormL1(lam)
+    f = LeastSquares(X_phi, Y)
+
+    # Initialize weights w
+    w = randn(p + 1)
+    gam = 1/eigmax(X_phi' * X_phi)
+
+    # Proximal gradient descent
+    for i = 1:it
+        # gradient of least squares
+        gradfw, _ = gradient(f, w)
+        w_step = w - gam * gradfw
+        w, _ = prox(g, w_step, gam)
+    end
+
+    return w
+
+end
+
+least_squares_reg(x, y)
