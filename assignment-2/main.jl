@@ -72,6 +72,10 @@ end
 plot_polynomials(x,y,15)
 
 function least_squares_reg(X, Y; q = 2, p = 10, lam = 0.1, it = 10000)
+    # Initializing plot data
+    X_grid = range(minimum(X), stop = maximum(X), length = 100)
+    X_grid_scaled = min_max_scale(X_grid, maximum(X), minimum(X))
+
     # Initializing data
     X_scaled = min_max_scale(X, maximum(X), minimum(X))
     X_phi = expand_x(X_scaled, p)
@@ -87,10 +91,15 @@ function least_squares_reg(X, Y; q = 2, p = 10, lam = 0.1, it = 10000)
     # Proximal gradient descent
     for i = 1:it
         # gradient of least squares
-        gradfw, _ = gradient(f, w)
+        gradfw,_ = gradient(f, w)
         w_step = w - gam * gradfw
         w, _ = prox(g, w_step, gam)
     end
+
+    pl = plot()
+    plot!(pl, X, Y, seriestype =:scatter)
+    plot!(pl, X_grid, X_grid_phi * w)
+    display(pl)
 
     return w
 
