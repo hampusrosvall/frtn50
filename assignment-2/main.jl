@@ -179,7 +179,7 @@ v = svm_dual_solver(X, Y, lam = 0.01, sigma = sigma)
 
 function grid_search(lambda_grid, sigma_grid)
     X, Y = svm_train()
-    X_test, Y_test = svm_test_1()
+    X_test, Y_test = svm_test_4()
     print("============= GRID SEARCH =============\n")
     for lam in lambda_grid
         for sigma in sigma_grid
@@ -199,8 +199,8 @@ function grid_search(lambda_grid, sigma_grid)
             error_train = mean(Y_pred_train .!= Y)
 
             # Print outs
-            print("Lambda: ", lam, "Sigma: ", sigma, "Test error rate: ", error_test,
-                            "Train error rate: ", error_train, "\n")
+            print("Lambda: ", lam, " Sigma: ", sigma, " Test error rate: ", error_test,
+                            " Train error rate: ", error_train, "\n")
         end
     end
 end
@@ -209,3 +209,92 @@ lambda_grid = [0.1, 0.01, 0.001, 0.0001]
 sigma_grid = [1, 0.5, 0.25]
 
 grid_search(lambda_grid, sigma_grid)
+
+function all_test_sets(;lam = 0.01, sigma = 0.25, naive_clf = false)
+    # Load training data
+    X, Y = svm_train()
+
+    # Load all test data
+    X_test_1, Y_test_1 = svm_test_1()
+    X_test_2, Y_test_2 = svm_test_2()
+    X_test_3, Y_test_3 = svm_test_3()
+    X_test_4, Y_test_4 = svm_test_4()
+
+    # Load all test data into array of tuples
+    test_data = [
+    (X_test_1, Y_test_1),
+    (X_test_2, Y_test_2),
+    (X_test_3, Y_test_3),
+    (X_test_4, Y_test_4)
+    ]
+
+    # Train model
+    v = svm_dual_solver(X, Y, lam = lam, sigma = sigma)
+
+    # Predict on test sets
+    print("============== PRECICT ON TEST DATA ==============\n")
+    print("Lambda: ", lam, " Sigma: ", sigma, "\n")
+    for (i, (X_test, Y_test)) in enumerate(test_data)
+        Y_pred = predict(X_test, v, Y, X, lambda = lam, sigma = sigma)
+        error_rate = mean(Y_pred .!= Y_test)
+        print("Error rate on test set ", i, ": ", error_rate, "\n")
+
+        if naive_clf
+            error_rate_pos = mean(Y_test .!= 1 .* ones(length(Y_test)))
+            error_rate_neg = mean(Y_test .!= -1 .* ones(length(Y_test)))
+            print("Pos clf: ", error_rate_pos, "\n")
+            print("Neg clf: ", error_rate_neg, "\n")
+        end
+    end
+
+
+end
+
+all_test_sets(lam = 0.1, sigma = 2, naive_clf = true)
+all_test_sets(lam = 0.001, sigma = 0.5, naive_clf = true)
+all_test_sets(lam = 0.00001, sigma = 0.25, naive_clf = true)
+
+function k_fold_svm()
+    X, Y = svm_train()
+
+    # shuffling data
+    idxs = randperm(length(X))
+
+    # extract shuffled data
+    X = X[idxs]
+    Y = Y[idxs]
+
+    # Set aside test set
+    X_test = X[1:100]
+    Y_test = Y[1:100]
+
+    X_rest= X[101:end]
+    Y_rest = Y[101:end]
+
+    folds = 10
+    valid_size = Integer(length(X_rest) / folds)
+    error_rate = 0
+
+    for i = 1:folds
+        # Slice out validation and train set
+        start = (i - 1) * valid_size + 1
+        stop = i * valid_size
+        valid_idxs = start:stop
+        train_idxs = setdiff(1:length(X_rest), valid_idxs)
+        Y_valid = Y_rest[valid_idxs]
+        Y_train = Y_rest[train_idxs]
+        X_valid = X_rest[valid_idxs]
+        X_train = X_rest[train_idxs]
+
+        # Train the model
+        v = svm_dual_solver(X_train, Y_train, lam = 0.01, sigma = 0.25)
+
+        # Predict on validation set
+        Y_pred = predict(X_valid, v, Y_train, X_train, lambda = 0.01, sigma = 0.25)
+
+        error_rate += mean(Y_pred .!= Y_valid)
+    end
+    return error_rate / folds
+end
+
+k_fold_svm()
