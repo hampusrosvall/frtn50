@@ -3,3 +3,7 @@
 *.pdf
 *.png
 *.zip
+
+# local folders 
+
+a2-local/
