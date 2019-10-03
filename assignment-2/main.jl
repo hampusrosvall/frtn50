@@ -80,8 +80,10 @@ function least_squares_reg(X, Y; q = 2, p = 10, lam = 0.1, it = 10000, do_plot =
        X_scaled = min_max_scale(X, maximum(X), minimum(X))
        X_phi = expand_x(X_scaled, p)
    else
-
-
+       X_grid = range(minimum(X), stop = maximum(X), length = 100)
+       X_grid_phi = expand_x(X_grid, p)
+       X_phi = expand_x(X, p)
+   end 
     # Initializing functions
     f = LeastSquares(X_phi, Y)
 
@@ -179,7 +181,7 @@ v = svm_dual_solver(X, Y, lam = 0.01, sigma = sigma)
 
 function grid_search(lambda_grid, sigma_grid)
     X, Y = svm_train()
-    X_test, Y_test = svm_test_4()
+    X_test, Y_test = svm_test_1()
     print("============= GRID SEARCH =============\n")
     for lam in lambda_grid
         for sigma in sigma_grid
@@ -229,11 +231,15 @@ function all_test_sets(;lam = 0.01, sigma = 0.25, naive_clf = false)
     ]
 
     # Train model
-    v = svm_dual_solver(X, Y, lam = lam, sigma = sigma)
+    v = svm_dual_solver(X, Y, lam = lam, sigma = sigma, it = 100000)
 
     # Predict on test sets
     print("============== PRECICT ON TEST DATA ==============\n")
     print("Lambda: ", lam, " Sigma: ", sigma, "\n")
+    Y_pred = predict(X, v, Y, X, lambda = lam, sigma = sigma)
+    error_rate = mean(Y_pred .!= Y)
+    print("Error rate on train set : ", error_rate, "\n")
+
     for (i, (X_test, Y_test)) in enumerate(test_data)
         Y_pred = predict(X_test, v, Y, X, lambda = lam, sigma = sigma)
         error_rate = mean(Y_pred .!= Y_test)
@@ -247,12 +253,11 @@ function all_test_sets(;lam = 0.01, sigma = 0.25, naive_clf = false)
         end
     end
 
-
 end
 
 all_test_sets(lam = 0.1, sigma = 2, naive_clf = true)
 all_test_sets(lam = 0.001, sigma = 0.5, naive_clf = true)
-all_test_sets(lam = 0.00001, sigma = 0.25, naive_clf = true)
+all_test_sets(lam = 0.00001, sigma = 0.25)
 
 function k_fold_svm()
     X, Y = svm_train()
@@ -264,15 +269,8 @@ function k_fold_svm()
     X = X[idxs]
     Y = Y[idxs]
 
-    # Set aside test set
-    X_test = X[1:100]
-    Y_test = Y[1:100]
-
-    X_rest= X[101:end]
-    Y_rest = Y[101:end]
-
     folds = 10
-    valid_size = Integer(length(X_rest) / folds)
+    valid_size = Integer(length(X) / folds)
     error_rate = 0
 
     for i = 1:folds
@@ -280,21 +278,55 @@ function k_fold_svm()
         start = (i - 1) * valid_size + 1
         stop = i * valid_size
         valid_idxs = start:stop
-        train_idxs = setdiff(1:length(X_rest), valid_idxs)
-        Y_valid = Y_rest[valid_idxs]
-        Y_train = Y_rest[train_idxs]
-        X_valid = X_rest[valid_idxs]
-        X_train = X_rest[train_idxs]
+        train_idxs = setdiff(1:length(X), valid_idxs)
+        Y_valid = Y[valid_idxs]
+        Y_train = Y[train_idxs]
+        X_valid = X[valid_idxs]
+        X_train = X[train_idxs]
 
         # Train the model
-        v = svm_dual_solver(X_train, Y_train, lam = 0.01, sigma = 0.25)
+        v = (X_train, Y_train, lam = 0.01, sigma = 0.25)
 
         # Predict on validation set
         Y_pred = predict(X_valid, v, Y_train, X_train, lambda = 0.01, sigma = 0.25)
 
         error_rate += mean(Y_pred .!= Y_valid)
     end
+
     return error_rate / folds
 end
 
 k_fold_svm()
+
+function holdout_svm(;holdout_size = 0.25)
+    X, Y = svm_train()
+
+    n_valid = Integer(length(X)*holdout_size)
+
+    # shuffling data
+    idxs = randperm(length(X))
+
+    # extract shuffled data
+    X = X[idxs]
+    Y = Y[idxs]
+
+    # Set aside test set
+    X_valid = X[1:n_valid]
+    Y_valid = Y[1:n_valid]
+
+    X_train = X[(n_valid+1):end]
+    Y_train = Y[(n_valid+1):end]
+
+    # Train the model
+    v = (X_train, Y_train, lam = 0.01, sigma = 0.25)
+
+    Y_pred = predict(X_valid, v, Y_train, X_train, lambda = 0.01, sigma = 0.25)
+    Y_pred_train = predict(X_train, v, Y_train, X_train, lambda = 0.01, sigma = 0.25)
+
+    valid_error = mean(Y_pred .!= Y_valid)
+
+    return valid_error
+
+end
+
+holdout_svm()
