@@ -83,7 +83,7 @@ function least_squares_reg(X, Y; q = 2, p = 10, lam = 0.1, it = 10000, do_plot =
        X_grid = range(minimum(X), stop = maximum(X), length = 100)
        X_grid_phi = expand_x(X_grid, p)
        X_phi = expand_x(X, p)
-
+   end 
     # Initializing functions
     f = LeastSquares(X_phi, Y)
 
