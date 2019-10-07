@@ -83,7 +83,7 @@ function least_squares_reg(X, Y; q = 2, p = 10, lam = 0.1, it = 10000, do_plot =
        X_grid = range(minimum(X), stop = maximum(X), length = 100)
        X_grid_phi = expand_x(X_grid, p)
        X_phi = expand_x(X, p)
-   end 
+   end
     # Initializing functions
     f = LeastSquares(X_phi, Y)
 
@@ -118,7 +118,7 @@ function create_kernel(X; sigma = 1)
     K = zeros(dim, dim)
     for (i, x_i) in enumerate(X)
         for (j, x_j) in enumerate(X)
-            exponent = -(1 / 2*sigma^2) * norm(x_i - x_j)^2
+            exponent = -(1 / (2*sigma^2)) * norm(x_i - x_j)^2
             K[i, j] = exp(exponent)
         end
     end
@@ -285,7 +285,7 @@ function k_fold_svm()
         X_train = X[train_idxs]
 
         # Train the model
-        v = (X_train, Y_train, lam = 0.01, sigma = 0.25)
+        v = svm_dual_solver(X_train, Y_train, lam = 0.01, sigma = 0.25)
 
         # Predict on validation set
         Y_pred = predict(X_valid, v, Y_train, X_train, lambda = 0.01, sigma = 0.25)
@@ -318,7 +318,7 @@ function holdout_svm(;holdout_size = 0.25)
     Y_train = Y[(n_valid+1):end]
 
     # Train the model
-    v = (X_train, Y_train, lam = 0.01, sigma = 0.25)
+    v = svm_dual_solver(X_train, Y_train, lam = 0.01, sigma = 0.25)
 
     Y_pred = predict(X_valid, v, Y_train, X_train, lambda = 0.01, sigma = 0.25)
     Y_pred_train = predict(X_train, v, Y_train, X_train, lambda = 0.01, sigma = 0.25)
