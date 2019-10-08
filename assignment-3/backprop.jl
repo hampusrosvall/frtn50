@@ -2,14 +2,14 @@ using LinearAlgebra, Statistics, Random
 
 # We define some useful activation functions
 sigmoid(x) = exp(x)/(1 + exp(x))
-#+++ relu
-#+++ leakyrelu
+relu(x) = x < 0 ? 0 : x
+leakyrelu(x) = x < 0: 0.2 * x : x
 
 # And methods to calculate their derivatives
 derivative(f::typeof(sigmoid), x::Float64) = sigmoid(x)*(1-sigmoid(x))
 derivative(f::typeof(identity), x::Float64) = one(x)
-#+++ derivative of relu
-#+++ derivative of leakyrelu
+derivative(f::typeof(relu), x::Float64) = x < 0 ? 0 : 1
+derivative(f::typeof(leakyrelu), x::Float64) = x < 0 ? 0.2 : 1
 
 # Astract type, all layers will be a subtype of `Layer`
 abstract type Layer{T} end
@@ -45,10 +45,17 @@ end
     Compute the output `out` from the layer.
     Store the input to the activation function in l.x and the output in l.out. """
 function (l::Dense)(z)
-    #+++ Implement the definition of a Dense layer here
-    #+++
-    #+++
-    #+++
+    # Calculate intermediate layer v
+    v = l.W * z + l.b
+
+    # Cache result for back propagation
+    l.x .= v
+
+    # Calculate acitivation of intermediate layer v
+    out = l.σ.(v)
+
+    # Cache result of activation
+    l.out .= out
 end
 
 # A network is just a sequence of layers
@@ -59,12 +66,15 @@ end
 """ out = n(z)
     Comute the result of applying each layer in a network to the previous output. """
 function (n::Network)(z)
-    #+++ Implement evaluation of a network here
-    #+++
-    #+++
-    #+++
-    #+++
+    for layer in n.layers
+        z = layer(z)
+    end
+    return z
 end
+
+l1 = Dense(3, 2, relu) # 3 outputs, 2 inputs
+l2 = Dense(1, 3, sigmoid) # 1 output, 3 inputs
+n = Network([l1, l2]) # 1 output, 2 inputs
 
 """ δ = backprop!(l::Dense, δnext, zin)
     Assuming that layer `l` has been called with `zin`,
