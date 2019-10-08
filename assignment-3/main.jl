@@ -54,7 +54,7 @@ function svm_dual_solver(X, Y; lam = 0.0001, it = 100000, sigma = 0.5, beta_type
     if cd
         h_j = HingeLoss(ones(1), 1)
         h_jconj = Conjugate(h_j)
-        for i = 1:it
+        for i = 1:it * N
             # Perform coordinate gradient descent step
             j = rand(1:length(v))
 
@@ -69,14 +69,15 @@ function svm_dual_solver(X, Y; lam = 0.0001, it = 100000, sigma = 0.5, beta_type
             v_j, _ = prox(h_jconj, [v_jgd], gam)
 
             v[j] = v_j[1]
-
-            v_iter[i, :] = v
+            if i % 500 == 0
+                v_iter[Int(i/N), :] = v
+            end
         end
     else
         if beta_type > 0
             v_prev = v
             mu = eigmin(Q)
-            for i = 1:(it * N)
+            for i = 1:it
                 # Generate Beta_k
                 B_k = generate_beta(beta_type, i, mu = mu, gamma = gam)
 
@@ -90,7 +91,7 @@ function svm_dual_solver(X, Y; lam = 0.0001, it = 100000, sigma = 0.5, beta_type
                 gradgv, _ = gradient(g_conj, v_extra)
 
                 # update dual parameter v
-                v = v - gam * gradgv
+                v = v_extra - gam * gradgv
 
                 # Update point
                 v, _ = prox(h_conj, v, gam)
@@ -109,9 +110,7 @@ function svm_dual_solver(X, Y; lam = 0.0001, it = 100000, sigma = 0.5, beta_type
                 # calculate new point v
                 v, _ = prox(h_conj, v, gam)
 
-                if i % 500
-                    v_iter[Int(i/N), :] = v
-                end
+                v_iter[i, :] = v
             end
         end
     end
@@ -132,7 +131,7 @@ end
 function point_generator()
     X, Y = svm_train()
     print("Solving dual problem to high precision..\n")
-    v_star, v_iter = svm_dual_solver(X, Y)
+    v_star, v_iter = svm_dual_solver(X, Y, it = 1000000)
     print("Solving dual problem to for beta_1..\n")
     _, v1_iter = svm_dual_solver(X, Y, beta_type = 1)
     print("Solving dual problem to for beta_3..\n")
@@ -147,10 +146,8 @@ lambda = 0.0001
 # Initialize training data
 X, Y = svm_train()
 
-# Solve the dual problem
-v = svm_dual_solver(X, Y, lam = lambda, sigma = sigma, beta_type = 3)
-
-v_iter, v1_iter, v3_iter, v_star = iteration_generator()
+v_iter, v1_iter, v3_iter, v_star = point_generator()
+v_cd, v_itercd = svm_dual_solver(X, Y, cd = true)
 
 v1_iter_norm = [norm(v1_iter[i, :] .- v_star) for i = 1:length(v1_iter[:, 1])]
 v3_iter_norm = [norm(v3_iter[i, :] .- v_star) for i = 1:length(v3_iter[:, 1])]
