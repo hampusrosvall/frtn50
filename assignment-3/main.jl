@@ -54,7 +54,7 @@ function svm_dual_solver(X, Y; lam = 0.0001, it = 100000, sigma = 0.5, beta_type
     if cd
         h_j = HingeLoss(ones(1), 1)
         h_jconj = Conjugate(h_j)
-        for i = 1:it * N
+        for i = 1:(it * N)
             # Perform coordinate gradient descent step
             j = rand(1:length(v))
 
@@ -131,7 +131,7 @@ end
 function point_generator()
     X, Y = svm_train()
     print("Solving dual problem to high precision..\n")
-    v_star, v_iter = svm_dual_solver(X, Y, it = 1000000)
+    v_star, v_iter = svm_dual_solver(X, Y, it = 100000)
     print("Solving dual problem to for beta_1..\n")
     _, v1_iter = svm_dual_solver(X, Y, beta_type = 1)
     print("Solving dual problem to for beta_3..\n")
@@ -151,6 +151,7 @@ v_cd, v_itercd = svm_dual_solver(X, Y, cd = true)
 
 v1_iter_norm = [norm(v1_iter[i, :] .- v_star) for i = 1:length(v1_iter[:, 1])]
 v3_iter_norm = [norm(v3_iter[i, :] .- v_star) for i = 1:length(v3_iter[:, 1])]
+v_cd_iter_norm = [norm(v3_iter[i, :] .- v_star) for i = 1:length(v3_iter[:, 1])]
 
 pl = plot(yaxis=:log10)
 plot!(pl, v1_iter_norm, label = "Beta_1")
