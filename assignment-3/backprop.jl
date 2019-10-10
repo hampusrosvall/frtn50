@@ -2,8 +2,8 @@ using LinearAlgebra, Statistics, Random
 
 # We define some useful activation functions
 sigmoid(x) = exp(x)/(1 + exp(x))
-relu(x) = x < 0 ? 0 : x
-leakyrelu(x) = x < 0: 0.2 * x : x
+relu(x) = max.(x)
+leakyrelu(x) = max.(x, 0.2 * x)
 
 # And methods to calculate their derivatives
 derivative(f::typeof(sigmoid), x::Float64) = sigmoid(x)*(1-sigmoid(x))
@@ -81,9 +81,9 @@ n = Network([l1, l2]) # 1 output, 2 inputs
     calculate the l.δ = ∂L/∂zᵢ given δᵢ₊₁ and zᵢ,
     and save l.∂W = ∂L/∂Wᵢ and l.∇b = (∂L/∂bᵢ)ᵀ """
 function backprop!(l::Dense, δnext, zin)
-    #+++ Implement back-propagation of a dense layer here
-    #+++
-    #+++
+    l.∇b .= δnext .* derivative.(l.σ, l.W * zin + l.b)
+    l.∂W .= l.∇b * zin'
+    l.δ .= l.W' * l.∇b
     return l.δ
 end
 
@@ -92,20 +92,40 @@ end
     Assuming that network `n` has been called with `input`, i.e `y=n(input)`
     backpropagate and save all gradients in the network,
     where ∂J∂y is the gradient (∂J/∂y)ᵀ. """
+
 function backprop!(n::Network, input, ∂J∂y)
     layers = n.layers
     # To the last layer, δᵢ₊₁ is ∂J∂y
     δ = ∂J∂y
     # Iterate through layers, starting at the end
     for i in length(layers):-1:2
-        #+++ Fill in the missing code here
-        #+++
+        δ = backprop!(layers[i], δ, layers[i-1].x)
     end
     # To first layer, the input was `input`
     zin = input
     δ = backprop!(layers[1], δ, zin)
     return
 end
+
+
+#Test that backprop works for NN
+l1 = Dense(3, 3, sigmoid) #Layer with 3 input 3 outputs
+l2 = Dense(1, 3, sigmoid) #Layer with 3 input 1 output
+n = Network([l1,l2]) #NN with l1 and l2
+z = [1. , 2. , 3.] #input to NN
+out1 = copy(n(z)) #output from NN for z input
+
+∂J∂W = [1.0] #Set loss to 1
+backprop!(n, z, ∂J∂W) #Calculate all gradients using backprop
+
+n.layers[1].∂W[1,1] #Should be same as this.
+
+n.layers[1].W[1,1] += 0.0001 #Change element 1,1 in first layer with 0.0001
+
+out2 = copy(n(z)) #output from changed NN for z input
+(out2-out1)./0.0001 #Calculate difference in outputs scaled with diff
+
+
 
 # This can be used to get a list of all parameters and gradients from a Dense layer
 getparams(l::Dense) = ([l.W, l.b], [l.∂W, l.∇b])
@@ -127,6 +147,38 @@ end
 sumsquares(yhat,y) =  norm(yhat-y)^2
 # And its gradient with respect to yhat: L_{yhat}(yhat,y)
 derivative(::typeof(sumsquares), yhat, y) =  yhat - y
+
+
+"""Function from assignment 3 manual"""
+function gradientstep!(n, lossfunc, x, y)
+    out = n(x)
+    # Calculate (∂L/∂out)ᵀ
+    ∇L = derivative(lossfunc, out, y)
+    # Backward pass over network
+    backprop!(n, x, ∇L)
+    # Get list of all parameters and gradients
+    parameters, gradients = getparams(n)
+    # For each parameter, take gradient step
+    for i = 1:length(parameters)
+         p = parameters[i]
+         g = gradients[i]
+         # Update this parameter with a small step in negative gradient
+         #→ direction
+         p .= p .- 0.001.*g
+         # The parameter p is either a W, or b so we broadcast to update all the
+         #→ elements
+    end
+end
+
+n = Network([Dense(3, 1, sigmoid), Dense(1, 3, sigmoid)])
+x = randn(1)
+y = [1.0] # We want the output to be 1
+
+n(x) # This is probably not close to 1
+
+gradientstep!(n, sumsquares, x, y)
+
+n(x)
 
 """ Structure for saving all the parameters and states needed for ADAM,
     as well as references to the parameters and gradients """
@@ -169,14 +221,12 @@ function update!(At::ADAMTrainer)
         # Get each of the stored values m, mhat, v, vhat for this parameter
         m, mh, v, vh = At.ms[i], At.mhs[i], At.vs[i], At.vhs[i]
 
-        # Update ADAM parameters
-        #+++
-        #+++
-        #+++
-        #+++
+        m .= β1 .* m .+ (1 - β1) .* ∇p
+        mh .= m ./ (1 - β1^t)
+        v .= β2 .* v .+ (1 - β2) .* ∇p.^2
+        vh .= v ./ (1 - β1^t)
+        p .= p .- γ .* mh ./ (sqrt.(vh) .- ϵ)
 
-        # Take the ADAM step
-        #+++
     end
     At.t[] = t+1     # At.t is a reference, we update the value t like this
     return
@@ -194,14 +244,16 @@ function train!(n, alg, xs, ys, lossfunc)
         xi = xs[i]          # Get data
         yi = ys[i]          # And expected output
 
-        #+++
-        #+++
-        #+++ Do a forward and backwards pass
-        #+++ with `xi`, `yi, and
-        #+++ update parameters using `alg`
-        #+++
-        #+++
-        #+++
+        #Forward pass
+        out = n(xi)
+
+        #derivative of loss
+        ∂J∂y = derivative(lossfunc, out, yi)
+
+        #Backward pass
+        backprop!(n, xi, ∂J∂y)
+
+        update!(alg)
 
         loss = lossfunc(out, yi)
         lossall += loss
