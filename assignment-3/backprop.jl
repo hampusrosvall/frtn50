@@ -329,13 +329,64 @@ plot!(-8:0.01:8, [copy(n([xi]))[1] for xi in -8:0.01:8], c=:red)
 #########################################################
 ### Task 4:
 
+function define_model(;n_inputs = 1)
+    l1 = Dense(30, n_inputs, leakyrelu, 0.0, 3.0, 0.0, 0.1)
+    lis = [Dense(30, 30, leakyrelu, 0.0, 3.0, 0.0, 0.1) for i = 1:4]
+    # Last layer has no activation function (identity)
+    ln = Dense(1, 30, identity, 0.0, 1.0, 0.0, 0.1)
+    n = Network([l1, lis..., ln])
+    return n
+end
+
+n = define_model()
+xs = [rand(1).*8 .- 4 for i = 1:2000]
+ys = [fsol(xi).+ 0.1.*randn(1) for xi in xs]
+# Test data
+testxs = [rand(1).*8 .- 4 for i = 1:1000]
+testys = [fsol(xi) for xi in testxs]
+
+### Define algorithm
+adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.0001)
+
+# Train 100 times over the data set
+for i = 1:100
+    # Random ordering of all the data
+    Iperm = randperm(length(xs))
+    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+end
+
+plot(-4:0.01:4, [fsol.(xi)[1] for xi in -4:0.01:4], c=:blue)
+scatter!(xs, ys, lab="", m=(:cross,0.2,:blue))
+scatter!(xs, [copy(n(xi)) for xi in xs], m=(:circle,0.2,:red))
+
 getloss(n, xs, ys, sumsquares)
 getloss(n, testxs, testys, sumsquares)
+
 #########################################################
 #########################################################
 #########################################################
 ### Task 5:
 
+n = define_model()
+xs = [rand(1).*8 .- 4 for i = 1:30]
+ys = [fsol(xi).+ 0.1.*randn(1) for xi in xs]
+# Test data
+testxs = [rand(1).*8 .- 4 for i = 1:1000]
+testys = [fsol(xi) for xi in testxs]
+
+### Define algorithm
+adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.0001)
+
+# Train 100 times over the data set
+for i = 1:100*round(2000/30)
+    # Random ordering of all the data
+    Iperm = randperm(length(xs))
+    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+end
+
+plot(-4:0.01:4, [fsol.(xi)[1] for xi in -4:0.01:4], c=:blue)
+scatter!(xs, ys, lab="", m=(:cross,0.2,:blue))
+scatter!(xs, [copy(n(xi)) for xi in xs], m=(:circle,0.2,:red))
 
 getloss(n, xs, ys, sumsquares)
 getloss(n, testxs, testys, sumsquares)
@@ -344,6 +395,72 @@ getloss(n, testxs, testys, sumsquares)
 #########################################################
 ### Task 6:
 fsol(x) = [min(0.5,sin(0.5*norm(x)^2))]
+
+n = define_model(n_inputs = 2)
+xs = [rand(2).*8 .- 4 for i = 1:2000]
+ys = [fsol.(xi)[1] for xi in xs]
+# Test data
+testxs = [rand(2).*8 .- 4 for i = 1:1000]
+testys = [fsol.(xi)[1] for xi in testxs]
+
+### Define algorithm
+adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.01)
+
+# Train 100 times over the data set
+for i = 1:100
+    # Random ordering of all the data
+    Iperm = randperm(length(xs))
+    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+end
+
+adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.003)
+
+for i = 1:100
+    # Random ordering of all the data
+    Iperm = randperm(length(xs))
+    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+end
+
+getloss(n, xs, ys, sumsquares)
+getloss(n, testxs, testys, sumsquares)
+
+# Plotttnig that can be used for task 6:
+scatter3d([xi[1] for xi in xs], [xi[2] for xi in xs], [n(xi)[1] for xi in xs], m=(:blue,1, :cross, stroke(0, 0.2, :blue)), size=(1200,800));
+scatter3d!([xi[1] for xi in xs], [xi[2] for xi in xs], [yi[1] for yi in ys], m=(:red,1, :circle, stroke(0, 0.2, :red)), size=(1200,800))
+
+#########################################################
+#########################################################
+#########################################################
+### Task 7:
+l1 = Dense(30, 2, relu, 0.0, 3.0, 0.0, 0.1)
+lis = [Dense(30, 30, relu, 0.0, 3.0, 0.0, 0.1) for i = 1:4]
+# Last layer has no activation function (identity)
+ln = Dense(1, 30, identity, 0.0, 1.0, 0.0, 0.1)
+n = Network([l1, lis..., ln])
+
+xs = [rand(2).*8 .- 4 for i = 1:2000]
+ys = [fsol.(xi)[1] for xi in xs]
+# Test data
+testxs = [rand(2).*8 .- 4 for i = 1:1000]
+testys = [fsol.(xi)[1] for xi in testxs]
+
+### Define algorithm
+adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.0001)
+
+# Train 100 times over the data set
+for i = 1:100
+    # Random ordering of all the data
+    Iperm = randperm(length(xs))
+    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+end
+
+adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.003)
+
+for i = 1:100
+    # Random ordering of all the data
+    Iperm = randperm(length(xs))
+    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+end
 
 getloss(n, xs, ys, sumsquares)
 getloss(n, testxs, testys, sumsquares)
