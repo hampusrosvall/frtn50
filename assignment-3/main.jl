@@ -36,7 +36,7 @@ function generate_beta(beta_type, k; mu = 1, gamma = 1)
 
 end
 
-function svm_dual_solver(X, Y; lam = 0.0001, it = 100000, sigma = 0.5, beta_type = 0, cd = false)
+function svm_dual_solver(X, Y; lam = 0.0001, it = 100000, sigma = 0.5, beta_type = 0, cd = false, cd_diag = false)
     mt = MersenneTwister(123)
     K = create_kernel(X, sigma = sigma)
     Q = (1/lam) * diagm(Y) * K * diagm(Y)
@@ -52,15 +52,19 @@ function svm_dual_solver(X, Y; lam = 0.0001, it = 100000, sigma = 0.5, beta_type
     v_iter = zeros((it, length(X)))
 
     if cd
-        h_j = HingeLoss(ones(1), 1)
+        h_j = HingeLoss(ones(1), 1/N)
         h_jconj = Conjugate(h_j)
         for i = 1:(it * N)
             # Perform coordinate gradient descent step
             j = rand(1:length(v))
 
+            if cd_diag
+                gam = 1/Q[j,j]
+            end
+
             # gradient of quadratic function
             #gradgv, _ = gradient(g_conj, v)
-            gradgv = Q[j, :]' * v
+            gradgv = Q[:, j]' * v
 
             # Perform gradient descent step w.r.t coordinate j
             v_jgd = v[j] - gam * gradgv
@@ -148,12 +152,16 @@ X, Y = svm_train()
 
 v_iter, v1_iter, v3_iter, v_star = point_generator()
 v_cd, v_itercd = svm_dual_solver(X, Y, cd = true)
+v_cd_diag, v_itercd_diag = svm_dual_solver(X, Y, cd = true, cd_diag = true)
 
 v1_iter_norm = [norm(v1_iter[i, :] .- v_star) for i = 1:length(v1_iter[:, 1])]
 v3_iter_norm = [norm(v3_iter[i, :] .- v_star) for i = 1:length(v3_iter[:, 1])]
-v_cd_iter_norm = [norm(v3_iter[i, :] .- v_star) for i = 1:length(v3_iter[:, 1])]
+v_itercd_norm = [norm(v_itercd[i, :] .- v_star) for i = 1:length(v_itercd[:, 1])]
+v_itercd_norm_diag = [norm(v_itercd_diag[i, :] .- v_star) for i = 1:length(v_itercd_diag[:, 1])]
 
 pl = plot(yaxis=:log10)
 plot!(pl, v1_iter_norm, label = "Beta_1")
 plot!(pl, v3_iter_norm, label = "Beta_3")
+plot!(pl, v_cd_iter_norm, label = "Coordinate Descent gamma = 1/L")
+plot!(pl, v_itercd_norm_diag, label = "Coordinate Descent gamma = 1/Q[i,i]")
 display(pl)
