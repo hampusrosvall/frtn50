@@ -310,9 +310,12 @@ for i = 1:100
 end
 
 # Plot real line and prediction
-plot(-4:0.01:4, [fsol.(xi)[1] for xi in -4:0.01:4], c=:blue)
+plot(-4:0.01:4, [fsol.(xi)[1] for xi in -4:0.01:4], c=:blue, lab="")
 scatter!(xs, ys, lab="", m=(:cross,0.2,:blue))
-scatter!(xs, [copy(n(xi)) for xi in xs], m=(:circle,0.2,:red))
+scatter!(xs[1], ys[1], lab="Target y", m=(:cross,0.2,:blue))
+scatter!(xs, [copy(n(xi)) for xi in xs], lab="", m=(:circle,0.2,:red))
+scatter!(xs[1], copy(n(xs[1])), lab="Prediction y_hat", m=(:circle,0.2,:red))
+savefig("task3")
 
 # We can calculate the mean error over the training data like this also
 getloss(n, xs, ys, sumsquares)
@@ -320,9 +323,10 @@ getloss(n, xs, ys, sumsquares)
 getloss(n, testxs, testys, sumsquares)
 
 # Plot expected line
-plot(-8:0.01:8, [fsol.(xi)[1] for xi in -8:0.01:8], c=:blue);
+plot(-8:0.01:8, [fsol.(xi)[1] for xi in -8:0.01:8], c=:blue, lab = "Expected Line");
 # Plot full network result
-plot!(-8:0.01:8, [copy(n([xi]))[1] for xi in -8:0.01:8], c=:red)
+plot!(-8:0.01:8, [copy(n([xi]))[1] for xi in -8:0.01:8], c=:red, lab = "Network output")
+savefig("task3_2")
 
 #########################################################
 #########################################################
@@ -355,9 +359,12 @@ for i = 1:100
     @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
 end
 
-plot(-4:0.01:4, [fsol.(xi)[1] for xi in -4:0.01:4], c=:blue)
+plot(-4:0.01:4, [fsol.(xi)[1] for xi in -4:0.01:4], c=:blue, lab="")
 scatter!(xs, ys, lab="", m=(:cross,0.2,:blue))
-scatter!(xs, [copy(n(xi)) for xi in xs], m=(:circle,0.2,:red))
+scatter!(xs[1], ys[1], lab="Target y", m=(:cross,0.2,:blue))
+scatter!(xs, [copy(n(xi)) for xi in xs], lab="", m=(:circle,0.2,:red))
+scatter!(xs[1], copy(n(xs[1])), lab="Prediction y_hat", m=(:circle,0.2,:red))
+savefig("task4")
 
 getloss(n, xs, ys, sumsquares)
 getloss(n, testxs, testys, sumsquares)
@@ -384,9 +391,12 @@ for i = 1:100*round(2000/30)
     @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
 end
 
-plot(-4:0.01:4, [fsol.(xi)[1] for xi in -4:0.01:4], c=:blue)
+plot(-4:0.01:4, [fsol.(xi)[1] for xi in -4:0.01:4], c=:blue, lab="")
 scatter!(xs, ys, lab="", m=(:cross,0.2,:blue))
-scatter!(xs, [copy(n(xi)) for xi in xs], m=(:circle,0.2,:red))
+scatter!(xs[1], ys[1], lab="Target y", m=(:cross,0.2,:blue))
+scatter!(xs, [copy(n(xi)) for xi in xs], lab="", m=(:circle,0.2,:red))
+scatter!(xs[1], copy(n(xs[1])), lab="Prediction y_hat", m=(:circle,0.2,:red))
+savefig("task5")
 
 getloss(n, xs, ys, sumsquares)
 getloss(n, testxs, testys, sumsquares)
@@ -403,31 +413,36 @@ ys = [fsol(xi) for xi in xs]
 testxs = [rand(2).*8 .- 4 for i = 1:1000]
 testys = [fsol(xi) for xi in testxs]
 
-### Define algorithm
-adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.001)
+adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.0001)
 
-# Train 100 times over the data set
 for i = 1:1000
     # Random ordering of all the data
     Iperm = randperm(length(xs))
-    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+    avg_loss = train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+    print(i, " ")
+    if avg_loss < 0.0
+        break
+    end
 end
+let
+    adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.00001)
 
-adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.001)
-
-for i = 1:5000
-    # Random ordering of all the data
-    Iperm = randperm(length(xs))
-    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+    for i = 1:1000
+        # Random ordering of all the data
+        Iperm = randperm(length(xs))
+        avg_loss = train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+        if avg_loss < 0.052
+            adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.00001)
+        end
+    end
 end
-
 getloss(n, xs, ys, sumsquares)
 getloss(n, testxs, testys, sumsquares)
 
 # Plotttnig that can be used for task 6:
-scatter3d([xi[1] for xi in xs], [xi[2] for xi in xs], [n(xi)[1] for xi in xs], m=(:blue,1, :cross, stroke(0, 0.2, :blue)), size=(1200,800));
-scatter3d!([xi[1] for xi in xs], [xi[2] for xi in xs], [yi[1] for yi in ys], m=(:red,1, :circle, stroke(0, 0.2, :red)), size=(1200,800))
-
+scatter3d([xi[1] for xi in xs], [xi[2] for xi in xs], [n(xi)[1] for xi in xs], m=(:blue,1, :cross, stroke(0, 0.2, :blue)), size=(1200,800), lab =  "Prediction y_hat");
+scatter3d!([xi[1] for xi in xs], [xi[2] for xi in xs], [yi[1] for yi in ys], m=(:red,1, :circle, stroke(0, 0.2, :red)), size=(1200,800), lab = "Targets y")
+savefig("task6")
 #########################################################
 #########################################################
 #########################################################
@@ -454,17 +469,5 @@ for i = 1:100
     @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
 end
 
-adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.003)
-
-for i = 1:100
-    # Random ordering of all the data
-    Iperm = randperm(length(xs))
-    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
-end
-
 getloss(n, xs, ys, sumsquares)
 getloss(n, testxs, testys, sumsquares)
-
-# Plotttnig that can be used for task 6:
-scatter3d([xi[1] for xi in xs], [xi[2] for xi in xs], [n(xi)[1] for xi in xs], m=(:blue,1, :cross, stroke(0, 0.2, :blue)), size=(1200,800));
-scatter3d!([xi[1] for xi in xs], [xi[2] for xi in xs], [yi[1] for yi in ys], m=(:red,1, :circle, stroke(0, 0.2, :red)), size=(1200,800))
