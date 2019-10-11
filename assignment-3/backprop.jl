@@ -398,24 +398,24 @@ fsol(x) = [min(0.5,sin(0.5*norm(x)^2))]
 
 n = define_model(n_inputs = 2)
 xs = [rand(2).*8 .- 4 for i = 1:2000]
-ys = [fsol.(xi)[1] for xi in xs]
+ys = [fsol(xi) for xi in xs]
 # Test data
 testxs = [rand(2).*8 .- 4 for i = 1:1000]
-testys = [fsol.(xi)[1] for xi in testxs]
+testys = [fsol(xi) for xi in testxs]
 
 ### Define algorithm
-adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.01)
+adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.001)
 
 # Train 100 times over the data set
-for i = 1:100
+for i = 1:1000
     # Random ordering of all the data
     Iperm = randperm(length(xs))
     @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
 end
 
-adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.003)
+adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.001)
 
-for i = 1:100
+for i = 1:5000
     # Random ordering of all the data
     Iperm = randperm(length(xs))
     @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
