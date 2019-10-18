@@ -2,7 +2,7 @@ using LinearAlgebra, Statistics, Random
 
 # We define some useful activation functions
 sigmoid(x) = exp(x)/(1 + exp(x))
-relu(x) = max.(x)
+relu(x) = max.(x, 0)
 leakyrelu(x) = max.(x, 0.2 * x)
 
 # And methods to calculate their derivatives
@@ -99,7 +99,7 @@ function backprop!(n::Network, input, ∂J∂y)
     δ = ∂J∂y
     # Iterate through layers, starting at the end
     for i in length(layers):-1:2
-        δ = backprop!(layers[i], δ, layers[i-1].x)
+        δ = backprop!(layers[i], δ, layers[i-1].out) #Here we change from x to out
     end
     # To first layer, the input was `input`
     zin = input
@@ -328,6 +328,12 @@ plot(-8:0.01:8, [fsol.(xi)[1] for xi in -8:0.01:8], c=:blue, lab = "Expected Lin
 plot!(-8:0.01:8, [copy(n([xi]))[1] for xi in -8:0.01:8], c=:red, lab = "Network output")
 savefig("task3_2")
 
+for i = 1:100
+    # Random ordering of all the data
+    Iperm = randperm(length(xs))
+    @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
+end
+
 #########################################################
 #########################################################
 #########################################################
@@ -415,25 +421,20 @@ testys = [fsol(xi) for xi in testxs]
 
 adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.0001)
 
-for i = 1:1000
+for i = 1:500
     # Random ordering of all the data
     Iperm = randperm(length(xs))
     avg_loss = train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
     print(i, " ")
-    if avg_loss < 0.0
-        break
-    end
 end
 let
     adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.00001)
 
-    for i = 1:1000
+    for i = 1:500
         # Random ordering of all the data
         Iperm = randperm(length(xs))
         avg_loss = train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
-        if avg_loss < 0.052
-            adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.00001)
-        end
+        print(i, " ")
     end
 end
 getloss(n, xs, ys, sumsquares)
@@ -454,16 +455,16 @@ ln = Dense(1, 30, identity, 0.0, 1.0, 0.0, 0.1)
 n = Network([l1, lis..., ln])
 
 xs = [rand(2).*8 .- 4 for i = 1:2000]
-ys = [fsol.(xi)[1] for xi in xs]
+ys = [fsol(xi) for xi in xs]
 # Test data
 testxs = [rand(2).*8 .- 4 for i = 1:1000]
-testys = [fsol.(xi)[1] for xi in testxs]
+testys = [fsol(xi) for xi in testxs]
 
 ### Define algorithm
 adam = ADAMTrainer(n, 0.95, 0.999, 1e-8, 0.0001)
 
 # Train 100 times over the data set
-for i = 1:100
+for i = 1:500
     # Random ordering of all the data
     Iperm = randperm(length(xs))
     @time train!(n, adam, xs[Iperm], ys[Iperm], sumsquares)
